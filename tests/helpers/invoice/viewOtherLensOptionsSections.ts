@@ -5,36 +5,42 @@ import { invoiceDetails,enterRetailPriceIfVisible , fillIfExists ,getRandomInt ,
 
 
 export async function additionalLensTreatments(page: Page) {
-    // 1. Click on "Additional Lens Treatments"
-    console.log("start --- Additional Lens Treatments");
-    await page.getByText("Additional Lens Treatments", { exact: true }).click();
-  
-    // Wait for conditional elements to appear
-    await page.waitForTimeout(1000); // Can be replaced with smarter wait logic if needed
-  
-    // 2. Check and click "Slab Off"
-    const slabOff = page.getByText("Slab Off", { exact: true });
-  
-    if (await slabOff.isVisible()) {
-      await slabOff.click();
-      // 3. Enter value in "Slab Off Copay" input
-      await enterRetailPriceIfVisible(page);
-      await fillIfExists(page, "input#slabOffPrice", getRandomInt(10, 50));
-    }
-  
-    // 4. Check and click "Polish"
-    const polish = page.getByText("Polish", { exact: true });
-    if (await polish.isVisible()) {
-      await polish.click();
-  
-      // 5. Select Polish Type — either "Edge Polish" or "Roll & Polish"
-  
-      await polishOptionSection(page);
-      // Step 1: Define all possible polish options
-  
-      await fillIfExists(page, "input#polishPrice", getRandomInt(10, 50)); // You can use random or parameterized value
-    }
+  console.log("start --- Additional Lens Treatments");
+
+  // Check if "Additional Lens Treatments" section exists and is visible
+  const isSectionVisible = await page
+    .getByText("Additional Lens Treatments", { exact: true })
+    .isVisible()
+    .catch(() => false);
+
+  if (!isSectionVisible) {
+    console.log("Additional Lens Treatments section not found, skipping...");
+    return;
   }
+
+  // 1. Click on "Additional Lens Treatments"
+  await page.getByText("Additional Lens Treatments", { exact: true }).click();
+
+  // Wait for conditional elements to appear
+  await page.waitForTimeout(1000); // You can replace with a smarter wait if needed
+
+  // 2. Check and click "Slab Off"
+  const slabOff = page.getByText("Slab Off", { exact: true });
+  if (await slabOff.isVisible().catch(() => false)) {
+    await slabOff.click();
+    await enterRetailPriceIfVisible(page);
+    await fillIfExists(page, "input#slabOffPrice", getRandomInt(10, 50));
+  }
+
+  // 4. Check and click "Polish"
+  const polish = page.getByText("Polish", { exact: true });
+  if (await polish.isVisible().catch(() => false)) {
+    await polish.click();
+    await polishOptionSection(page);
+    await fillIfExists(page, "input#polishPrice", getRandomInt(10, 50));
+  }
+}
+
   
   async function polishOptionSection(page) {
     const polishOptions = ["Edge Polish", "Roll & Polish"];
@@ -87,6 +93,9 @@ export async function additionalLensTreatments(page: Page) {
     });
     if (await edgeCoating.isVisible()) {
       await edgeCoating.click();
+
+      await fillIfExists(page, "input#edgeCoatingType", getRandomInt(10, 50));
+      
       await enterRetailPriceIfVisible(page);
     }
   }

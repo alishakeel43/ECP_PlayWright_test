@@ -9,17 +9,15 @@ export let invoiceDetails = {
   customer : generateUserDetails(true)
 };
 
-// export let invoiceDetails = {
-//   name: "wyd9ml",
-//   price: "$315.74",
-//   status: "Draft",
-//   customer: {
-//     email: "test.user@yopmail.com",
-//     firstName: "Test",
-//     lastName: "Playwright",
-//     phone : '(030) 123-4567'
-//   },
-// };
+export function updateInvoiceDetails() {
+  invoiceDetails = {
+    name: Math.random().toString(36).substring(2, 8),
+    price : '',
+    status : '',
+    customer: generateUserDetails(true)
+  };
+}
+
 
 // Utility to get a random number in range
 export function getRandomInt(min = 10, max = 50) {
@@ -46,7 +44,7 @@ function getRandomDOB() {
 // Random Pakistani-style phone number
 function getRandomPhone() {
   const prefix = ["030", "031", "032", "033", "034"][getRandomInt(0, 4)];
-  const suffix = getRandomInt(10000000, 99999999);
+  const suffix = getRandomInt(1000000, 9999999);
   return `(${prefix}) ${suffix.toString().slice(0, 3)}-${suffix
     .toString()
     .slice(3)}`;
@@ -81,11 +79,21 @@ export async function addInvoiceDetails(page: Page) {
   await options.nth(randomIndex).click();
 }
 
-export async function completeOtherFields(page: Page) {
-  // Reuse your dynamic utilities here
+async function  frameAndLensBenefitSection(page:Page) {
+  const isFrameBenefitVisible = await page.locator('input[name="isFrameBenifit"]').first().isVisible().catch(() => false);
+  if (isFrameBenefitVisible) {
+    await page.locator('input[name="isFrameBenifit"]').first().check();
+  }
 
-  await page.locator('input[name="isFrameBenifit"]').first().check(); // YES
-  await page.locator('input[name="isLensBenifit"]').first().check(); // YES
+  // Check isLensBenifit if visible
+  const isLensBenefitVisible = await page.locator('input[name="isLensBenifit"]').first().isVisible().catch(() => false);
+  if (isLensBenefitVisible) {
+    await page.locator('input[name="isLensBenifit"]').first().check();
+  }
+  
+}
+
+export async function completeOtherFields(page: Page) {
 
   // Davis Spectacle Lens Copay Price
 
@@ -353,11 +361,13 @@ export function generateUserDetails(isLocal: boolean) {
   } else {
     const firstName = getRandomFromArray(firstNames);
     const lastName = getRandomFromArray(lastNames);
+    const ddhhmm = `${new Date().getDate().toString().padStart(2, '0')}${new Date().getHours().toString().padStart(2, '0')}${new Date().getMinutes().toString().padStart(2, '0')}`;
+
     return {
       firstName,
       lastName,
       dob: getRandomDOB(),
-      email: `${firstName}.${lastName}${Date.now()}@yopmail.com`,
+      email: `${firstName}.${lastName}${ddhhmm}@yopmail.com`,
       phone: getRandomPhone(),
     };
   }
@@ -412,7 +422,7 @@ export async function handleCopaySection(page) {
   }
 
   // Step 2: Wait and find copay options
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(5000);
   const copayOptionBoxes = page.locator(
     'div[class*="_8dTrcZBGSy46stXhGLoGhA"] div[tabindex="0"][style*="cursor: pointer"]'
   );
@@ -433,7 +443,7 @@ export async function handleCopaySection(page) {
     ) {
       await loweredCopayNo.check();
       console.log(
-        "⚠️ Switched to Lowered Copay = No due to no options available"
+        "Switched to Lowered Copay = No due to no options available"
       );
     }
   }
@@ -509,363 +519,88 @@ export async function sunGlassesAndTint(page: Page) {
   }
 }
 
-// export async function additionalLensTreatments(page: Page) {
-//   // 1. Click on "Additional Lens Treatments"
-//   console.log("start --- Additional Lens Treatments");
-//   await page.getByText("Additional Lens Treatments", { exact: true }).click();
 
-//   // Wait for conditional elements to appear
-//   await page.waitForTimeout(1000); // Can be replaced with smarter wait logic if needed
+/**
+ * Selects lens type and collection title radio buttons by visible name.
+ * @param page Playwright Page instance
+ * @param lensType Visible text of the lens type (e.g., "NVF")
+ * @param collectionTitle Visible text of the collection (e.g., "Shamir Computer")
+ */
+export async function selectLensOptions(page, lensType: string, collectionTitle: string): Promise<boolean> {
 
-//   // 2. Check and click "Slab Off"
-//   const slabOff = page.getByText("Slab Off", { exact: true });
+  await frameAndLensBenefitSection(page);
+  
+  let collectActive : boolean = false;
 
-//   if (await slabOff.isVisible()) {
-//     await slabOff.click();
-//     // 3. Enter value in "Slab Off Copay" input
-//     await enterRetailPriceIfVisible(page);
-//     await fillIfExists(page, "input#slabOffPrice", getRandomInt(10, 50));
-//   }
+  // Select lensType radio button
+  const lensTypeRadio = page.locator('div', { hasText: new RegExp(`^${lensType}$`) }).locator('input[type="radio"]');
+  if (await lensTypeRadio.count() > 0) {
+    await lensTypeRadio.first().check();
+    console.log(`Selected lens type: ${lensType}`);
+  } else {
+    console.warn(`Lens type "${lensType}" not found.`);
+  }
 
-//   // 4. Check and click "Polish"
-//   const polish = page.getByText("Polish", { exact: true });
-//   if (await polish.isVisible()) {
-//     await polish.click();
+  collectionTitle = collectionTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // Select collectionTitle radio button
+  const collectionRadio = page.locator('div', { hasText: new RegExp(`^${collectionTitle}$`) }).locator('input[type="radio"]');
+  if (await collectionRadio.count() > 0) {
+    await collectionRadio.first().check();
+    await enterRetailPriceIfVisible(page);
+    collectActive = true ;
+    console.log(`Selected collection: ${collectionTitle}`);
+  } else {
+    console.warn(`Collection title "${collectionTitle}" not found.`);
+  }
 
-//     // 5. Select Polish Type — either "Edge Polish" or "Roll & Polish"
+ 
 
-//     await polishOptionSection(page);
-//     // Step 1: Define all possible polish options
+  try {
+    const lensInput = page.locator('input#lensTypeInput');
+  
+    if (await lensInput.count() > 0) {
+      // Fill the input field
+      await lensInput.fill(getRandomInt(10,50));
+  
+      // Get the closest parent container (where U&C options are located)
+      const parentContainer = lensInput.locator('xpath=ancestor::div[contains(@class, "ant-row")]');
+  
+      // Find all "80% of U&C" options inside that container
+      const ucOptions = parentContainer.locator('div', { hasText: '80% of U&C' });
+      const count = await ucOptions.count();
+  
+      if (count > 0) {
+        const randomIndex = Math.floor(Math.random() * count);
+        const randomOption = ucOptions
+          .nth(randomIndex)
+          .locator('..') // parent of the label
+          .locator('div[tabindex="0"]'); // clickable icon
+  
+        await randomOption.click();
+        console.log('Clicked a random U&C 80% option for lens type.');
+      } else {
+        console.log('No "80% of U&C" option found inside the parent container.');
+      }
+    } else {
+      console.log('Input #lensTypeInput not found. Skipping...');
+    }
+  } catch (error) {
+    console.error('Error occurred while handling lensTypeInput and U&C 80% option:', error);
+  }
+  
+      
 
-//     await fillIfExists(page, "input#polishPrice", getRandomInt(10, 50)); // You can use random or parameterized value
-//   }
-// }
+  return collectActive;
+}
 
-// async function polishOptionSection(page) {
-//   const polishOptions = ["Edge Polish", "Roll & Polish"];
-//   let visiblePolish = [];
 
-//   // Step 2: Loop to collect all visible polish options
-//   for (const option of polishOptions) {
-//     const polishLocator = page.getByText(option, { exact: true });
-//     if (await polishLocator.isVisible()) {
-//       visiblePolish.push(polishLocator);
-//     }
-//   }
-
-//   // Step 3: Handle logic based on presence of visible options
-//   if (visiblePolish.length > 0) {
-//     // Randomly select one visible polish option
-//     const randomIndex = Math.floor(Math.random() * visiblePolish.length);
-//     const selectedPolish = visiblePolish[randomIndex];
-
-//     await enterRetailPriceIfVisible(page); // Your custom logic
-//     await selectedPolish.click();
-//   } else {
-//     // Step 4: Uncheck the polish section (if it's a checkbox or toggle)
-//     const polishToggle = page.getByText("Polish", { exact: true });
-//     if (await polishToggle.isVisible()) {
-//       await polishToggle.click();
-//     }
-//   }
-// }
-
-// export async function scratchResistantCoatings(page: Page) {
-//   // 1. Check and click "Scratch Resistant Coatings"
-//   const scratchResistantOption = page.getByText("Scratch Resistant Coatings", {
-//     exact: true,
-//   });
-//   if (await scratchResistantOption.isVisible()) {
-//     await scratchResistantOption.click();
-
-//     // Get all scratchedType radio buttons and select random option
-//     await checkRandomOption(page, 'input[name="scratchedType"]');
-//     // 2. Enter value in "Scratch Resistant Copay" input
-//     await fillIfExists(page, "input#scratchedPrice", getRandomInt(10, 50)); // You can use random or parameterized value
-//   }
-// }
-
-// export async function edgeCoating(page: Page) {
-//   // 1. Check and click "Edge Coating"
-//   const edgeCoating = page.getByText("Edge Coating", {
-//     exact: true,
-//   });
-//   if (await edgeCoating.isVisible()) {
-//     await edgeCoating.click();
-//     await enterRetailPriceIfVisible(page);
-//   }
-// }
-
-// export async function uvProtection(page: Page) {
-//   // 1. Check and click "UV Protection"
-//   const uvProtection = page.getByText("UV Protection", {
-//     exact: true,
-//   });
-//   if (await uvProtection.isVisible()) {
-//     await uvProtection.click();
-//     await enterRetailPriceIfVisible(page);
-//   }
-// }
-
-// export async function glassesProtectionPlan(page) {
-//   // Step 1: Check the checkbox only if not already checked
-//   const label = await page.getByText("Glasses Protection Plan", {
-//     exact: true,
-//   });
-
-//   if (!(await label.isVisible().catch(() => false))) {
-//     console.log("❌ Label not found: Glasses Protection Plan");
-//     return;
-//   }
-
-//   const parentDiv = await label.locator("..").first();
-//   const tickImg = parentDiv.locator('img[src*="tick-green.svg"]');
-//   const isAlreadyChecked = await tickImg.isVisible().catch(() => false);
-
-//   if (!isAlreadyChecked) {
-//     const svg = parentDiv.locator("svg").first();
-//     const checkbox = svg.locator("..").first();
-//     await checkbox.click();
-//     console.log("✅ Checked: Glasses Protection Plan");
-//   } else {
-//     console.log("ℹ️ Already checked: Glasses Protection Plan");
-//   }
-
-//   // Step 2: Try to select a random option from the select dropdown
-//   const select = await page.$('select[name="protectionPlanType"]');
-
-//   if (select) {
-//     const options = await select.$$('option:not([value=""])');
-//     if (options.length > 0) {
-//       const values = await Promise.all(
-//         options.map((opt) => opt.getAttribute("value"))
-//       );
-//       const randomValue = values[Math.floor(Math.random() * values.length)];
-//       await select.selectOption(randomValue);
-//       console.log(`✅ Selected random protection plan: ${randomValue}`);
-//       return;
-//     }
-//   }
-
-//   // If no valid options exist, uncheck the checkbox if it's selected
-//   const stillChecked = await tickImg.isVisible().catch(() => false);
-//   if (stillChecked) {
-//     const svg = parentDiv.locator("svg").first();
-//     const checkbox = svg.locator("..").first();
-//     await checkbox.click();
-//     console.log("✅ Unchecked: Glasses Protection Plan (no options)");
-//   } else {
-//     console.log("ℹ️ Already unchecked: Glasses Protection Plan (no options)");
-//   }
-// }
-
-// export async function shipping(page) {
-//   const label = await page.getByText("Shipping", { exact: true });
-
-//   if (!(await label.isVisible().catch(() => false))) {
-//     console.log("❌ Label not found: Shipping");
-//     return;
-//   }
-
-//   const parentDiv = await label.locator("..").first();
-//   const tickImg = parentDiv.locator('img[src*="tick-green.svg"]');
-//   const isChecked = await tickImg.isVisible().catch(() => false);
-
-//   // Step 1: Check the Shipping box if not already checked
-//   if (!isChecked) {
-//     const svg = parentDiv.locator("svg").first();
-//     const checkbox = svg.locator("..").first();
-//     await checkbox.click();
-//     console.log("✅ Checked: Shipping");
-//   } else {
-//     console.log("ℹ️ Already checked: Shipping");
-//   }
-
-//   // Step 2: Try to select a random option from the dropdown
-//   const select = await page.$('select[name="shippingType"]');
-
-//   if (select) {
-//     const options = await select.$$('option:not([value=""])');
-//     if (options.length > 0) {
-//       const values = await Promise.all(
-//         options.map((opt) => opt.getAttribute("value"))
-//       );
-//       const randomValue = values[Math.floor(Math.random() * values.length)];
-//       await select.selectOption(randomValue);
-//       console.log(`✅ Selected random shipping option: ${randomValue}`);
-//       return;
-//     }
-//   }
-
-//   // If dropdown is missing or has no options — uncheck if currently selected
-//   const stillChecked = await tickImg.isVisible().catch(() => false);
-//   if (stillChecked) {
-//     const svg = parentDiv.locator("svg").first();
-//     const checkbox = svg.locator("..").first();
-//     await checkbox.click();
-//     console.log("✅ Unchecked: Shipping (no options)");
-//   } else {
-//     console.log("ℹ️ Shipping already unchecked (no options)");
-//   }
-// }
-
-// export async function miscellaneousFee(page) {
-//   const label = await page.getByText("Miscellaneous Fee", { exact: true });
-
-//   if (!(await label.isVisible().catch(() => false))) {
-//     console.log("❌ Label not found: Miscellaneous Fee");
-//     return;
-//   }
-
-//   const parentDiv = await label.locator("..").first();
-//   const tickImg = parentDiv.locator('img[src*="tick-green.svg"]');
-//   const isChecked = await tickImg.isVisible().catch(() => false);
-
-//   // Step 1: Check the Miscellaneous Fee box if not already checked
-//   if (!isChecked) {
-//     const svg = parentDiv.locator("svg").first();
-//     const checkbox = svg.locator("..").first();
-//     await checkbox.click();
-//     console.log("✅ Checked: Miscellaneous Fee");
-//   } else {
-//     console.log("ℹ️ Already checked: Miscellaneous Fee");
-//   }
-
-//   // Step 2: Try to select a random option from the dropdown
-//   const select = await page.$('select[name="miscType"]');
-
-//   if (select) {
-//     const options = await select.$$('option:not([value=""])');
-//     if (options.length > 0) {
-//       const values = await Promise.all(
-//         options.map((opt) => opt.getAttribute("value"))
-//       );
-//       const randomValue = values[Math.floor(Math.random() * values.length)];
-//       await select.selectOption(randomValue);
-//       console.log(
-//         `✅ Selected random Miscellaneous Fee option: ${randomValue}`
-//       );
-//       return;
-//     }
-//   }
-
-//   // If dropdown is missing or has no options — uncheck if currently selected
-//   const stillChecked = await tickImg.isVisible().catch(() => false);
-//   if (stillChecked) {
-//     const svg = parentDiv.locator("svg").first();
-//     const checkbox = svg.locator("..").first();
-//     await checkbox.click();
-//     console.log("✅ Unchecked: Miscellaneous Fee (no options)");
-//   } else {
-//     console.log("ℹ️ Miscellaneous Fee already unchecked (no options)");
-//   }
-// }
-
-// export async function discount(page) {
-//   const label = await page.getByText("Discount", { exact: true });
-
-//   if (!(await label.isVisible().catch(() => false))) {
-//     console.log("❌ Label not found: Discount");
-//     return;
-//   }
-
-//   const parentDiv = await label.locator("..").first();
-//   const tickImg = parentDiv.locator('img[src*="tick-green.svg"]');
-//   const isChecked = await tickImg.isVisible().catch(() => false);
-
-//   // Step 1: Check the Discount box if not already checked
-//   if (!isChecked) {
-//     const svg = parentDiv.locator("svg").first();
-//     const checkbox = svg.locator("..").first();
-//     await checkbox.click();
-//     console.log("✅ Checked: Discount");
-//   } else {
-//     console.log("ℹ️ Already checked: Discount");
-//   }
-
-//   // Step 2: Try to select a random option from the dropdown
-//   const select = await page.$('select[name="discountTypeDropdown"]');
-
-//   if (select) {
-//     const options = await select.$$('option:not([value=""])');
-//     if (options.length > 0) {
-//       const values = await Promise.all(
-//         options.map((opt) => opt.getAttribute("value"))
-//       );
-//       const randomValue = values[Math.floor(Math.random() * values.length)];
-//       await select.selectOption(randomValue);
-//       console.log(`✅ Selected random Discount option: ${randomValue}`);
-
-//       await fillDiscountFieldsIfVisible(page);
-//       return;
-//     }
-//   }
-
-//   // If dropdown is missing or has no options — uncheck if currently selected
-//   const stillChecked = await tickImg.isVisible().catch(() => false);
-//   if (stillChecked) {
-//     const svg = parentDiv.locator("svg").first();
-//     const checkbox = svg.locator("..").first();
-//     await checkbox.click();
-//     console.log("✅ Unchecked: Discount (no options)");
-//   } else {
-//     console.log("ℹ️ Discount already unchecked (no options)");
-//   }
-// }
-
-// function getRandomDiscountData() {
-//   const names = [
-//     "Summer Special",
-//     "Winter Sale",
-//     "Black Friday",
-//     "Holiday Discount",
-//     "Flash Deal",
-//     "VIP Offer",
-//     "Clearance Sale",
-//     "New Customer",
-//     "Birthday Bonus",
-//     "Weekend Offer",
-//     "Limited Time",
-//     "Back to School",
-//     "End of Season",
-//     "Buy More Save More",
-//     "First Order",
-//     "Referral Bonus",
-//   ];
-
-//   const randomName = names[Math.floor(Math.random() * names.length)];
-//   const randomPrice = (Math.random() * 50).toFixed(2); // Between 0.00 and 50.00
-//   const type = Math.random() < 0.5 ? "percentage" : "amount"; // Randomly choose %
-
-//   return {
-//     name: randomName,
-//     price: randomPrice,
-//     type: type,
-//   };
-// }
-
-// async function fillDiscountFieldsIfVisible(page) {
-//   const discountNameInput = page.locator('input[name="discountType"]');
-//   const discountValueInput = page.locator('input[name="discountValue"]');
-//   const discountTypeSelect = page.locator('select[name="discountAmountType"]');
-
-//   const isNameVisible = await discountNameInput.isVisible().catch(() => false);
-//   const isValueVisible = await discountValueInput
-//     .isVisible()
-//     .catch(() => false);
-//   const isTypeVisible = await discountTypeSelect.isVisible().catch(() => false);
-
-//   if (isNameVisible && isValueVisible && isTypeVisible) {
-//     const discount = getRandomDiscountData();
-
-//     await discountNameInput.fill(discount.name);
-//     await discountValueInput.fill(discount.price);
-//     await discountTypeSelect.selectOption(discount.type);
-
-//     console.log(
-//       `✅ Discount: ${discount.name}, ${discount.price} (${discount.type})`
-//     );
-//   } else {
-//     console.log("ℹ️ Discount fields not fully visible — skipping.");
-//   }
-// }
+export async function clickButtonIfVisible(page: Page, name: string) {
+  const button = page.getByRole("button", { name });
+  const isVisible = await button.isVisible().catch(() => false);
+  if (isVisible) {
+    await button.click();
+    console.log(`Clicked button: "${name}"`);
+  } else {
+    console.log(`Button not visible: "${name}"`);
+  }
+}

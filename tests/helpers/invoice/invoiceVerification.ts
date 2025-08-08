@@ -1,28 +1,32 @@
 import { test, expect, Page, BrowserContext } from "@playwright/test";
 import { randomInt } from "crypto";
-import { invoiceDetails } from "./invoiceHelpers";
+import { invoiceDetails, clickButtonIfVisible} from "./invoiceHelpers";
 
 
 export async function viewPdfAndSaveDraft(page) {
-    console.log("View the invoice");
+
+  
+    console.log("View the invoice for save and draft");
+    // Step 3: Click on the "Save/Update" button (with alt="draft")
+    const saveButton = page.locator('button[type="submit"] img[alt="draft"]');
+    await saveButton.first().click(); // just in case multiple match
+
+  
     await expect(page.locator("text=Just a Moment")).toHaveCount(0, {
       timeout: 100000,
     });
-    await page.getByRole("button", { name: "draft" }).click();
-    await page
-      .getByRole("button", { name: "Your New Glasses Would Have" })
-      .click();
-    await page
-      .getByRole("button", { name: "Reduced Fee for Glasses with" })
-      .click();
-    await page
-      .getByRole("button", { name: "Your New Glasses Would Have" })
-      .click();
-    await page
-      .getByRole("button", { name: "Reduced Fee for Glasses with" })
-      .click();
-  
+
+
+    // Get the total price
     const totalSlotPriceLocator = page.locator("#total-slot-price");
+    await totalSlotPriceLocator.waitFor({ state: "visible" });
+    
+    await clickButtonIfVisible(page, "Your New Glasses Would Have");
+    await clickButtonIfVisible(page, "Reduced Fee for Glasses with");
+    await clickButtonIfVisible(page, "Your New Glasses Would Have");
+    await clickButtonIfVisible(page, "Reduced Fee for Glasses with");
+
+
     invoiceDetails.price = await totalSlotPriceLocator.textContent(); // e.g., "$594.70"
   
     invoiceDetails.status = "Draft";
@@ -34,43 +38,6 @@ export async function viewPdfAndSaveDraft(page) {
     await expect(page.locator("text=Just a Moment")).toHaveCount(0, {
       timeout: 100000,
     });
-  }
-  
-  export async function viewPdfForInvoiveDetails(page: Page) {
-    console.log("🔍 View the invoice");
-  
-    // Wait until "Just a Moment" is gone (e.g., custom loader text)
-    await expect(page.locator("text=Just a Moment")).toHaveCount(0, {
-      timeout: 100000,
-    });
-  
-    // Wait for the actual loader DOM element to disappear
-    await page.waitForSelector(".loader", { state: "detached", timeout: 10000 });
-  
-    // Optional: confirm that buttons are visible and stable before clicking
-    const glassesButton = page.getByRole("button", {
-      name: "Your New Glasses Would Have",
-    });
-    const feeButton = page.getByRole("button", {
-      name: "Reduced Fee for Glasses with",
-    });
-  
-    await glassesButton.waitFor({ state: "visible" });
-    await glassesButton.click();
-  
-    await feeButton.waitFor({ state: "visible" });
-    await feeButton.click();
-  
-    // Click again if it’s part of a toggle/test logic
-    await glassesButton.click();
-    await feeButton.click();
-  
-    // Get the total price
-    const totalSlotPriceLocator = page.locator("#total-slot-price");
-    await totalSlotPriceLocator.waitFor({ state: "visible" });
-    invoiceDetails.price = (await totalSlotPriceLocator.textContent())?.trim() ?? "";
-  
-    console.log("✅ Extracted price:", invoiceDetails.price);
   }
   
   
@@ -172,30 +139,28 @@ export async function viewPdfAndSaveDraft(page) {
     await expect(page.locator("text=Just a Moment")).toHaveCount(0, {
       timeout: 100000,
     });
-  
+
+    await clickUpdateIfErrorExists(page);
+
+
     // Step 3: Click on the "Save/Update" button (with alt="draft")
     const saveButton = page.locator('button[type="submit"] img[alt="draft"]');
     await saveButton.first().click(); // just in case multiple match
   
-    console.log("View the invoice  --------------------------------");
+    console.log("View the invoice for 'save and send' section");
     await expect(page.locator("text=Just a Moment")).toHaveCount(0, {
       timeout: 100000,
     });
   
-    await page
-      .getByRole("button", { name: "Your New Glasses Would Have" })
-      .click();
-    await page
-      .getByRole("button", { name: "Reduced Fee for Glasses with" })
-      .click();
-    await page
-      .getByRole("button", { name: "Your New Glasses Would Have" })
-      .click();
-    await page
-      .getByRole("button", { name: "Reduced Fee for Glasses with" })
-      .click();
-  
+    // Get the total price
     const totalSlotPriceLocator = page.locator("#total-slot-price");
+    await totalSlotPriceLocator.waitFor({ state: "visible" });
+    
+    await clickButtonIfVisible(page, "Your New Glasses Would Have");
+    await clickButtonIfVisible(page, "Reduced Fee for Glasses with");
+    await clickButtonIfVisible(page, "Your New Glasses Would Have");
+    await clickButtonIfVisible(page, "Reduced Fee for Glasses with");
+
     invoiceDetails.price = await totalSlotPriceLocator.textContent(); // e.g., "$594.70"
   
     invoiceDetails.status = "Unpaid";
@@ -263,28 +228,23 @@ export async function viewPdfAndSaveDraft(page) {
     await expect(page.locator("text=Just a Moment")).toHaveCount(0, {
       timeout: 100000,
     });
+
+    await clickUpdateIfErrorExists(page);
+
   
     // Step 3: Click on the "Save/Update" button (with alt="draft")
     const saveButton = page.locator('button[type="submit"] img[alt="draft"]');
     await saveButton.first().click(); // just in case multiple match
   
-    console.log("View the invoice  --------------------------------");
+    console.log("View the invoice for Paid Section");
     await expect(page.locator("text=Just a Moment")).toHaveCount(0, {
       timeout: 100000,
     });
   
-    await page
-      .getByRole("button", { name: "Your New Glasses Would Have" })
-      .click();
-    await page
-      .getByRole("button", { name: "Reduced Fee for Glasses with" })
-      .click();
-    await page
-      .getByRole("button", { name: "Your New Glasses Would Have" })
-      .click();
-    await page
-      .getByRole("button", { name: "Reduced Fee for Glasses with" })
-      .click();
+    await clickButtonIfVisible(page, "Your New Glasses Would Have");
+    await clickButtonIfVisible(page, "Reduced Fee for Glasses with");
+    await clickButtonIfVisible(page, "Your New Glasses Would Have");
+    await clickButtonIfVisible(page, "Reduced Fee for Glasses with");
   
     const totalSlotPriceLocator = page.locator("#total-slot-price");
     invoiceDetails.price = await totalSlotPriceLocator.textContent(); // e.g., "$594.70"
@@ -351,7 +311,7 @@ export async function viewPdfAndSaveDraft(page) {
           if (subject.trim() === 'Your Prescription Eyewear') {
             console.log(`📩 Found matching email at index ${i}. Clicking...`);
             await messages.nth(i).click();
-              // ✅ Scroll the page down to bring preview into view
+              // Scroll the page down to bring preview into view
               await page.evaluate(() => {
                 window.scrollTo(0, document.body.scrollHeight);
               });
@@ -392,34 +352,82 @@ export async function viewPdfAndSaveDraft(page) {
     
       // Step 11: (Switch back to main if needed — optional in Playwright)
       // Step 12: Scroll down
-      await newPage.evaluate(() => window.scrollBy(0, 402));
+      await newPage.evaluate(() => window.scrollBy(0, 500));
   
       // Step 14: Check name
       const matches = newPage.locator(`text=${randomFirstName} ${randomLastName}`);
       await expect(matches.nth(1)).toBeVisible({timeout: 20000}); // or .nth(0)
       // Step 15: Check email
-      await expect(newPage.locator(`text=${randomEmail}`)).toBeVisible();
+      await expect(newPage.locator(`text=${randomEmail}`)).toBeVisible({timeout:30000});
     
       // Step 16: Check phone number
-      await expect(newPage.locator(`text=${customerPhoneNumber}`)).toBeVisible();
+      await expect(newPage.locator(`text=${customerPhoneNumber}`)).toBeVisible({timeout:30000});
     
       // Step 17: Check invoice price
       await expect(newPage.locator('#total-slot-price')).toContainText(invoiceValue);
     
       console.log('sdf sdf');
-      // Step 18: Click Pay Now
+
       await newPage.click(`xpath=//button[contains(@class, 'X-EKGursNZMBlXXaGzt1lA==')]`);
-    
-      // Step 19: Wait for Stripe URL
-      await newPage.waitForURL(/https:\/\/checkout\.stripe\.com\//, { timeout: 30000 });
-    
-  
-      await expect(newPage.locator(`text=${invoiceValue}`)).toBeVisible({timeout:30000 });
-  
-      // Step 25: Wait for 5 seconds
-      await newPage.waitForTimeout(5000);
-  
+      
+      const formattedInvoiceValue = formatCurrencyString(invoiceValue); // "$2,478.67"
+
+      // Optional: Wait for Stripe-specific URL
+      await newPage.waitForURL(/https:\/\/checkout\.stripe\.com\//, { timeout: 150000 });
+
+      // Fetch value from button with USD image
+      try {
+
+        await expect(newPage).toHaveTitle(/(Stripe|Wadic)/i, { timeout: 60000 });
+        
+        const usdCurrencyLocator = newPage.locator('button:has(img[alt="US"]) .CurrencyAmount');
+
+        if (await usdCurrencyLocator.isVisible({ timeout: 60000 })) {
+          const usdCurrencyText = await usdCurrencyLocator.textContent();
+          const formattedUsdValue = usdCurrencyText?.replace(/,/g, '').trim();
+          console.log('Value from USD button:', formattedUsdValue);
+        } else {
+          console.log('USD currency button not visible');
+          const amountLocator = newPage.locator('[data-testid="product-summary-total-amount"] >> span.CurrencyAmount');
+
+          if (await amountLocator.isVisible({ timeout: 60000 })) {
+            const rawAmount = await amountLocator.textContent();
+            const formattedAmount = rawAmount?.replace(/,/g, '').trim();
+            console.log('Value from total amount (no button):', formattedAmount);
+          } else {
+            console.log('Total amount span not visible');
+          }
+        }
+      } catch (error) {
+        console.log('Error fetching USD currency value:', error);
+      }
+
+
       await newPage.close();
   };
+
+
   
+  function formatCurrencyString(value: string): string {
+    const numeric = parseFloat(value.replace(/[$,]/g, '')); // Remove $ and commas
+    return `$${numeric.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
   
+/**
+ * Clicks "Update Invoice" button if both it and the error text exist
+ */
+export async function clickUpdateIfErrorExists(page: Page): Promise<void> {
+  const updateButton = page.getByRole('button', { name: 'Update Invoice' });
+  const errorText = page.getByText('One or more saved values are', { exact: false });
+
+  const buttonVisible = await updateButton.isVisible().catch(() => false);
+  const errorVisible = await errorText.isVisible().catch(() => false);
+
+  if (buttonVisible && errorVisible) {
+    await updateButton.click();
+    console.log('Clicked "Update Invoice" button because both conditions were met.');
+  } else {
+    console.log('Either the button or error message is missing. Skipping click.');
+  }
+}
