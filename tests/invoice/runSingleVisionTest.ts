@@ -73,9 +73,11 @@ import {
       await draftInvoiceAndVerifyDetails(page);
       await sendInvoiceEmailAndVerifyEmailDetails(page);
   
-      const smtpPage = await context.newPage();
-      await verifyInvoiceEmailFromSMTP(smtpPage, context);
-      await smtpPage.close();
+      // const smtpPage = await context.newPage();
+      // await verifyInvoiceEmailFromSMTP(smtpPage, context);
+      // await smtpPage.close();
+      
+      await verifyInvoiceEmailFromSMTP(page, context);
   
       await paidInvoiceAndVerifyInoviceDetails(page);
     } catch (error: any) {
@@ -92,9 +94,6 @@ import {
         status,
         failureMessage
       );
-  
-      await page.close();
-      await context.close();
   
       const endTime = new Date();
       const duration = (endTime.getTime() - startTime.getTime()) / 1000;

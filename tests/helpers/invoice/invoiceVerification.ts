@@ -342,45 +342,48 @@ export async function viewPdfAndSaveDraft(page) {
       await orderGlassesButton.scrollIntoViewIfNeeded();
   
       // Now click the element
-      await orderGlassesButton.click();
-      // Step 10: Switch to new tab
       const [newPage] = await Promise.all([
         context.waitForEvent('page'),
-        // The click from step 9 already triggers this
+        orderGlassesButton.click()
       ]);
-      await newPage.waitForLoadState();
+      
+      // Instead of letting it open a new tab, open that link in same tab:
+      const url = newPage.url();
+      await newPage.close();
+      await page.goto(url); // main `page` jo tumhare function param me aaya tha
+      
     
       // Step 11: (Switch back to main if needed — optional in Playwright)
       // Step 12: Scroll down
-      await newPage.evaluate(() => window.scrollBy(0, 500));
+      await page.evaluate(() => window.scrollBy(0, 500));
   
       // Step 14: Check name
-      const matches = newPage.locator(`text=${randomFirstName} ${randomLastName}`);
+      const matches = page.locator(`text=${randomFirstName} ${randomLastName}`);
       await expect(matches.nth(1)).toBeVisible({timeout: 20000}); // or .nth(0)
       // Step 15: Check email
-      await expect(newPage.locator(`text=${randomEmail}`)).toBeVisible({timeout:30000});
+      await expect(page.locator(`text=${randomEmail}`)).toBeVisible({timeout:30000});
     
       // Step 16: Check phone number
-      await expect(newPage.locator(`text=${customerPhoneNumber}`)).toBeVisible({timeout:30000});
+      await expect(page.locator(`text=${customerPhoneNumber}`)).toBeVisible({timeout:30000});
     
       // Step 17: Check invoice price
-      await expect(newPage.locator('#total-slot-price')).toContainText(invoiceValue);
+      await expect(page.locator('#total-slot-price')).toContainText(invoiceValue);
     
       console.log('sdf sdf');
 
-      await newPage.click(`xpath=//button[contains(@class, 'X-EKGursNZMBlXXaGzt1lA==')]`);
+      await page.click(`xpath=//button[contains(@class, 'X-EKGursNZMBlXXaGzt1lA==')]`);
       
       const formattedInvoiceValue = formatCurrencyString(invoiceValue); // "$2,478.67"
 
       // Optional: Wait for Stripe-specific URL
-      await newPage.waitForURL(/https:\/\/checkout\.stripe\.com\//, { timeout: 150000 });
+      await page.waitForURL(/https:\/\/checkout\.stripe\.com\//, { timeout: 150000 });
 
       // Fetch value from button with USD image
       try {
 
-        await expect(newPage).toHaveTitle(/(Stripe|Wadic)/i, { timeout: 60000 });
+        await expect(page).toHaveTitle(/(Stripe|Wadic)/i, { timeout: 60000 });
         
-        const usdCurrencyLocator = newPage.locator('button:has(img[alt="US"]) .CurrencyAmount');
+        const usdCurrencyLocator = page.locator('button:has(img[alt="US"]) .CurrencyAmount');
 
         if (await usdCurrencyLocator.isVisible({ timeout: 60000 })) {
           const usdCurrencyText = await usdCurrencyLocator.textContent();
@@ -388,7 +391,7 @@ export async function viewPdfAndSaveDraft(page) {
           console.log('Value from USD button:', formattedUsdValue);
         } else {
           console.log('USD currency button not visible');
-          const amountLocator = newPage.locator('[data-testid="product-summary-total-amount"] >> span.CurrencyAmount');
+          const amountLocator = page.locator('[data-testid="product-summary-total-amount"] >> span.CurrencyAmount');
 
           if (await amountLocator.isVisible({ timeout: 60000 })) {
             const rawAmount = await amountLocator.textContent();
@@ -402,8 +405,6 @@ export async function viewPdfAndSaveDraft(page) {
         console.log('Error fetching USD currency value:', error);
       }
 
-
-      await newPage.close();
   };
 
 
